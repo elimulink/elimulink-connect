@@ -1,0 +1,10 @@
+{
+  "folders": [
+    { "path": "connect-calendar/frontend" },
+    { "path": "connect-calendar/backend" },
+    { "path": "connect-meet/frontend" },
+    { "path": "connect-meet/backend" },
+    { "path": "shared" }
+  ],
+  "settings": {}
+}

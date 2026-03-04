@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "elimulink-connect"
+  },
+  "targets": {
+    "elimulink-connect": {
+      "hosting": {
+        "calendar": [
+          "elimulink-connect-calendar"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
