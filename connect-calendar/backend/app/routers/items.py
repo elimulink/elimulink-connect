@@ -11,6 +11,26 @@ from app.schemas import ItemOut, ItemCreate, ItemUpdate
 
 router = APIRouter(prefix="/api/v1/items", tags=["items"])
 
+
+def serialize_item(item: CalendarItem) -> ItemOut:
+    return ItemOut(
+        id=item.id,
+        calendar_id=item.calendar_id,
+        owner_uid=item.owner_uid,
+        kind=item.kind.value if isinstance(item.kind, ItemKind) else item.kind,
+        title=item.title,
+        description=item.description,
+        start_at=item.start_at,
+        end_at=item.end_at,
+        all_day=item.all_day,
+        timezone=item.timezone,
+        location_text=item.location_text,
+        status=item.status.value if isinstance(item.status, ItemStatus) else item.status,
+        metadata=item.item_metadata or {},
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
 @router.get("", response_model=list[ItemOut])
 def list_items(
     from_: datetime = Query(..., alias="from"),
@@ -27,7 +47,7 @@ def list_items(
     # Overlap range: item.start < to AND item.end > from
     q = q.filter(CalendarItem.start_at < to, CalendarItem.end_at > from_)
 
-    return q.order_by(CalendarItem.start_at.asc()).all()
+    return [serialize_item(item) for item in q.order_by(CalendarItem.start_at.asc()).all()]
 
 @router.post("", response_model=ItemOut)
 def create_item(
@@ -56,7 +76,7 @@ def create_item(
     db.add(item)
     db.commit()
     db.refresh(item)
-    return item
+    return serialize_item(item)
 
 @router.patch("/{item_id}", response_model=ItemOut)
 def update_item(
@@ -92,7 +112,7 @@ def update_item(
 
     db.commit()
     db.refresh(item)
-    return item
+    return serialize_item(item)
 
 @router.delete("/{item_id}")
 def delete_item(
