@@ -1,6 +1,8 @@
-import { getIdToken } from "./auth.js";
+import { getIdToken, handleProtectedAuthFailure } from "./auth.js";
 
-const BASE = "http://localhost:8000/api/v1";
+const BASE =
+  import.meta.env.VITE_CALENDAR_API_BASE ||
+  (import.meta.env.DEV ? "http://localhost:8000/api/v1" : "/api/v1");
 
 async function request(path, { method = "GET", body } = {}) {
   const token = await getIdToken();
@@ -15,6 +17,10 @@ async function request(path, { method = "GET", body } = {}) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    if (res.status === 401 || res.status === 403) {
+      await handleProtectedAuthFailure().catch(() => {});
+      throw new Error(text || "Your calendar session expired. Please sign in again.");
+    }
     throw new Error(text || `API error ${res.status}`);
   }
 
