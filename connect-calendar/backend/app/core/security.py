@@ -1,4 +1,5 @@
 import os
+import json
 from dataclasses import dataclass
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -20,9 +21,14 @@ def _init_firebase():
     global _firebase_inited
     if _firebase_inited:
         return
-    # Allow GOOGLE_APPLICATION_CREDENTIALS env var usage
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
-    cred = credentials.ApplicationDefault()
+    if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+        cred = credentials.Certificate(json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON))
+    elif settings.GOOGLE_APPLICATION_CREDENTIALS:
+        # Allow GOOGLE_APPLICATION_CREDENTIALS env var usage
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
+        cred = credentials.ApplicationDefault()
+    else:
+        raise RuntimeError("Firebase Admin credentials are not configured")
     firebase_admin.initialize_app(cred, {"projectId": settings.FIREBASE_PROJECT_ID})
     _firebase_inited = True
 
@@ -48,6 +54,13 @@ def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> AuthedUser:
+    if settings.LOCAL_DEV_AUTH_BYPASS:
+        _ensure_primary_calendar(db, settings.LOCAL_DEV_AUTH_UID)
+        return AuthedUser(
+            uid=settings.LOCAL_DEV_AUTH_UID,
+            email=settings.LOCAL_DEV_AUTH_EMAIL,
+        )
+
     if not creds or creds.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization Bearer token")
 
@@ -62,6 +75,8 @@ def get_current_user(
         # Ensure primary calendar exists on first authed request
         _ensure_primary_calendar(db, uid)
         return AuthedUser(uid=uid, email=email)
+    except RuntimeError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Calendar auth is not configured")
     except HTTPException:
         raise
     except Exception:
