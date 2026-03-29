@@ -51,7 +51,7 @@ def create_item(
         timezone=payload.timezone,
         location_text=payload.location_text,
         status=ItemStatus(payload.status),
-        metadata=payload.metadata or {},
+        item_metadata=payload.metadata or {},
     )
     db.add(item)
     db.commit()
@@ -76,9 +76,19 @@ def update_item(
     if "status" in data:
         item.status = ItemStatus(data["status"])
 
-    for k in ["title", "description", "start_at", "end_at", "all_day", "timezone", "location_text", "metadata"]:
-        if k in data:
-            setattr(item, k, data[k])
+    field_map = {
+        "title": "title",
+        "description": "description",
+        "start_at": "start_at",
+        "end_at": "end_at",
+        "all_day": "all_day",
+        "timezone": "timezone",
+        "location_text": "location_text",
+        "metadata": "item_metadata",
+    }
+    for source_field, model_field in field_map.items():
+        if source_field in data:
+            setattr(item, model_field, data[source_field])
 
     db.commit()
     db.refresh(item)
