@@ -1,8 +1,8 @@
 const iceBuffer = new Map();
 
-export function createPeer({ localStream, onIce, onTrack }) {
+export function createPeer({ localStream, onIce, onTrack, iceServers = [{ urls: "stun:stun.l.google.com:19302" }] }) {
   const pc = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    iceServers,
   });
 
   localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
@@ -51,4 +51,12 @@ export async function flushIce(pc, remoteUid) {
     await pc.addIceCandidate(new RTCIceCandidate(c));
   }
   iceBuffer.delete(remoteUid);
+}
+
+export function clearBufferedIce(remoteUid) {
+  if (remoteUid) {
+    iceBuffer.delete(remoteUid);
+    return;
+  }
+  iceBuffer.clear();
 }
