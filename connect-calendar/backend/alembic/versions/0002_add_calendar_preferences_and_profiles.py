@@ -1,6 +1,6 @@
 """add calendar preferences and profile tables
 
-Revision ID: 0002_add_calendar_preferences_and_profiles
+Revision ID: 0002_cal_prefs
 Revises: 0001_create_calendar_tables
 Create Date: 2026-03-29
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision = "0002_add_calendar_preferences_and_profiles"
+revision = "0002_cal_prefs"
 down_revision = "0001_create_calendar_tables"
 branch_labels = None
 depends_on = None
