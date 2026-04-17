@@ -6,15 +6,28 @@ import {
   watchFirebaseAuth,
 } from "./firebaseAuth";
 
+const CALENDAR_BOOTSTRAP_TIMEOUT_MS = 8000;
+const CALENDAR_INITIAL_AUTH_GRACE_MS = 2500;
+
 export function useFamilyBootstrap({ appName, verifyUrl }) {
   const [bootState, setBootState] = useState("loading");
   const [profile, setProfile] = useState(() => loadAppSession());
 
   useEffect(() => {
     let active = true;
+    let initialAuthResolved = false;
+    const initialAuthTimer = setTimeout(() => {
+      if (!active || initialAuthResolved) return;
+      console.warn("[family-auth] calendar auth state timed out before initialization; falling back to guest");
+      clearAppSession();
+      setProfile(null);
+      setBootState("guest");
+    }, CALENDAR_INITIAL_AUTH_GRACE_MS);
 
     const unsubscribe = watchFirebaseAuth(async (firebaseUser) => {
       if (!active) return;
+      initialAuthResolved = true;
+      clearTimeout(initialAuthTimer);
 
       if (!firebaseUser) {
         clearAppSession();
@@ -29,14 +42,23 @@ export function useFamilyBootstrap({ appName, verifyUrl }) {
           throw new Error("Missing Firebase ID token");
         }
 
-        const res = await fetch(verifyUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ app: appName }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), CALENDAR_BOOTSTRAP_TIMEOUT_MS);
+
+        let res;
+        try {
+          res = await fetch(verifyUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ app: appName }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (!res.ok) {
           throw new Error(`Verification failed with status ${res.status}`);
@@ -69,6 +91,7 @@ export function useFamilyBootstrap({ appName, verifyUrl }) {
 
     return () => {
       active = false;
+      clearTimeout(initialAuthTimer);
       unsubscribe();
     };
   }, [appName, verifyUrl]);

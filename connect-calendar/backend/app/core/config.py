@@ -1,21 +1,35 @@
+import os
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-DEFAULT_CORS_ORIGINS = ",".join(
-    [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-        "http://localhost:5175",
-        "http://127.0.0.1:5175",
-        "https://calendar.elimulink.co.ke",
-        "https://elimulink-connect-calendar.web.app",
-        "https://elimulink-connect-calendar.firebaseapp.com",
-    ]
-)
+DEFAULT_CORS_ORIGIN_ITEMS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+    "https://calendar.elimulink.co.ke",
+    "https://elimulink-connect-calendar.web.app",
+    "https://elimulink-connect-calendar.firebaseapp.com",
+]
+
+
+def _split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _merge_cors_origins(env_value: str | None) -> str:
+    merged: list[str] = []
+    for origin in [*DEFAULT_CORS_ORIGIN_ITEMS, *_split_csv(env_value or "")]:
+        if origin not in merged:
+            merged.append(origin)
+    return ",".join(merged)
+
+
+DEFAULT_CORS_ORIGINS = _merge_cors_origins(os.getenv("CORS_ORIGINS"))
 
 
 class Settings(BaseSettings):
