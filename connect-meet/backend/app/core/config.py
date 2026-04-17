@@ -3,6 +3,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+DEFAULT_CORS_ORIGINS = ",".join(
+    [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "https://meet.elimulink.co.ke",
+        "https://elimulink-connect-meet.web.app",
+        "https://elimulink-connect-meet.firebaseapp.com",
+    ]
+)
+
 def _split_csv(v: str) -> list[str]:
     return [x.strip() for x in v.split(",") if x.strip()]
 
@@ -11,7 +23,8 @@ def _get_bool(name: str, default: bool = False) -> bool:
     value = str(os.getenv(name, str(default))).strip().lower()
     return value in {"1", "true", "yes", "on"}
 
-CORS_ORIGINS = _split_csv(os.getenv("CORS_ORIGINS", "http://localhost:5173"))
+CORS_ORIGINS = _split_csv(os.getenv("CORS_ORIGINS", DEFAULT_CORS_ORIGINS))
+CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX", r"^https://([a-z0-9-]+\.)?elimulink\.co\.ke$")
 
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")

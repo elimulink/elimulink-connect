@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from app.core.config import CORS_ORIGINS, MEET_REALTIME_MODE, MEET_WEB_CONCURRENCY_HINT
+from app.core.config import CORS_ORIGIN_REGEX, CORS_ORIGINS, MEET_REALTIME_MODE, MEET_WEB_CONCURRENCY_HINT
 from app.routers.auth import router as auth_router
 from app.routers.attachments import router as attachments_router
 from app.routers.health import router as health_router
@@ -16,6 +16,7 @@ logger = logging.getLogger("meet.runtime")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
