@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from dataclasses import dataclass
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,6 +14,7 @@ from app.core.db import get_db
 from app.models import Calendar
 
 bearer = HTTPBearer(auto_error=False)
+logger = logging.getLogger(__name__)
 
 # Initialize Firebase Admin once
 _firebase_inited = False
@@ -38,17 +40,21 @@ class AuthedUser:
     email: str | None = None
 
 def _ensure_primary_calendar(db: Session, uid: str):
-    exists = db.query(Calendar).filter(Calendar.owner_uid == uid, Calendar.is_primary == True).first()
-    if exists:
-        return
-    cal = Calendar(
-        owner_uid=uid,
-        name="My Calendar",
-        color="#2F6B58",
-        is_primary=True,
-    )
-    db.add(cal)
-    db.commit()
+    try:
+        exists = db.query(Calendar).filter(Calendar.owner_uid == uid, Calendar.is_primary == True).first()
+        if exists:
+            return
+        cal = Calendar(
+            owner_uid=uid,
+            name="My Calendar",
+            color="#2F6B58",
+            is_primary=True,
+        )
+        db.add(cal)
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to ensure primary calendar", extra={"uid": uid})
 
 def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(bearer),
